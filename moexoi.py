@@ -39,22 +39,27 @@ def parse_page(page, date):
     for row in rows:
         tds = row.find_all('td')[1:]
         for td in tds:
-            s += td.string + ';'
+            s += re.sub('\s+', '', td.string) + ';'
     return s
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='MOEX open interest data grabber')
-    parser.add_argument('--from', dest='fromdate', action='store')
-    parser.add_argument('--to', dest='todate', action='store')
-    parser.add_argument('--ticker', dest='ticker', action='store')
-    args = parser.parse_args()
+    parser.add_argument('-f', '--from', dest='fromdate', action='store', required=True)
+    parser.add_argument('-t', '--to', dest='todate', action='store', required=True)
+    parser.add_argument('-s','--ticker', dest='ticker', action='store', required=True)
+    parser.add_argument('-o', '--output', dest='output_file', action='store', required=True)
+    args = parser.parse_args()  
     fromdate = datetime.datetime.strptime(args.fromdate, '%Y%m%d').date().toordinal()
     todate = datetime.datetime.strptime(args.todate, '%Y%m%d').date().toordinal()
     
     src = DataSource()
     
-    f = open('out.txt', 'w')
-    for day in range(fromdate, todate):
+    out_filename = args.output_file
+    if out_filename == '!':
+        out_filename = args.ticker + "_" + args.fromdate + "_" + args.todate + ".csv"
+    f = open(out_filename, 'w')
+    f.write('DATE;PHYS_LONG_TOTAL;PHYS_SHORT_TOTAL;JUR_LONG_TOTAL;JUR_SHORT_TOTAL;TOTAL;PHYS_LONG_CHANGE;PHYS_SHORT_CHANGE;JUR_LONG_CHANGE;JUR_SHORT_CHANGE;TOTAL_CHANGE;PHYS_LONG_PCHANGE;PHYS_SHORT_PCHANGE;JUR_LONG_PCHANGE;JUR_SHORT_PCHANGE;TOTAL_PCHANGE;PHYS_ENT_LONG;PHYS_ENT_SHORT;JUR_ENT_LONG;JUR_ENT_SHORT;TOTAL_END;\n')
+    for day in range(fromdate, todate + 1):
         date = datetime.date.fromordinal(day)
         print('Downloading date: ', str(date))
         f.write(parse_page(src.get_raw_data(date, args.ticker), date))
